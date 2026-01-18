@@ -1,41 +1,47 @@
+import { requireSubscription } from '@/lib/supabase/gatekeeper'
 import { getRevenueStats } from '@/lib/analytics/revenue'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 
 export default async function DashboardPage() {
+  const { user } = await requireSubscription()
   const { mrr, activeSubscriptions } = await getRevenueStats()
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-        <p className="text-muted-foreground">
-          Real-time insights into your subscription business.
+    <main className="space-y-8">
+      <section>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Overview
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Welcome back, {user.email}. Here is your current revenue snapshot.
         </p>
-      </div>
+      </section>
 
-      <StatsCards mrr={mrr} activeSubscriptions={activeSubscriptions} />
+      <section aria-label="Revenue Statistics">
+        <StatsCards mrr={mrr} activeSubscriptions={activeSubscriptions} />
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-7">
-        <div className="col-span-4 rounded-xl border border-border bg-card p-6 min-h-[400px]">
-          <h2 className="text-sm font-medium text-muted-foreground mb-4">
+      <div className="grid gap-6 md:grid-cols-7">
+        <section className="col-span-4 rounded-xl border border-border bg-card p-6 min-h-100">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
             Revenue Growth
           </h2>
-          {/* Chart implementation will go here */}
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground/50 italic">
-            Chart data visualization pending...
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground/40 italic">
+            Chart visualization engine initializing...
           </div>
-        </div>
-        <div className="col-span-3 rounded-xl border border-border bg-card p-6">
-          <h2 className="text-sm font-medium text-muted-foreground mb-4">
+        </section>
+
+        <section className="col-span-3 rounded-xl border border-border bg-card p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
             Recent Activity
           </h2>
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground italic">
-              No recent transactions found.
+            <p className="text-xs text-muted-foreground/60 italic">
+              No recent usage logs detected.
             </p>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   )
 }
