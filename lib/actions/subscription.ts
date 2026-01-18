@@ -33,3 +33,29 @@ export async function createCheckoutSession(priceId: string) {
 
   redirect(session.url)
 }
+
+export async function getBillingPortalUrl() {
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_customer_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.stripe_customer_id) {
+    throw new Error('No Stripe customer found for this user.')
+  }
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: profile.stripe_customer_id,
+    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`
+  })
+
+  redirect(session.url)
+}

@@ -3,7 +3,7 @@ export interface PlanFeatures {
   apiCallsPerMonth?: number | string
   storageGB?: number | string
   supportTier?: string
-  [key: string]: unknown // Allows for arbitrary additional features
+  [key: string]: unknown
 }
 
 export interface Plan {
@@ -12,6 +12,14 @@ export interface Plan {
   description: string | null
   stripe_price_id: string
   amount: number
-  interval: string
+  interval: 'month' | 'year'
   features: PlanFeatures
+}
+
+export interface Customer {
+  id: string
+  email: string
+  subscription_status: string
+  created_at: string
+  plans: Plan | Plan[] | null
 }
