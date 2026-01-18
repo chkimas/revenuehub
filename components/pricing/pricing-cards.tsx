@@ -69,7 +69,7 @@ export function PricingCards({ plans }: { plans: Plan[] }) {
             onClick={() => handleSubscribe(plan.stripe_price_id, plan.id)}
             disabled={loadingId !== null}
             className={cn(
-              'mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+              'mt-8 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 transition-all focus-visible:outline focus-visible:outline-offset-2',
               loadingId === plan.id
                 ? 'bg-muted text-muted-foreground cursor-not-allowed'
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'
