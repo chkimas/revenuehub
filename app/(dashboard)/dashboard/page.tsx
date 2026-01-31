@@ -2,6 +2,8 @@ import { requireSubscription } from '@/lib/supabase/gatekeeper'
 import { getRevenueStats } from '@/lib/analytics/revenue'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const { user } = await requireSubscription()
   const { mrr, activeSubscriptions } = await getRevenueStats()

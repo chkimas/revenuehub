@@ -12,21 +12,40 @@ export async function createCheckoutSession(priceId: string) {
 
   if (!user) throw new Error('Unauthorized')
 
-  // Retrieve existing stripe customer ID from profile
+  // Fetch the profile to get the existing Stripe ID
   const { data: profile } = await supabase
     .from('profiles')
     .select('stripe_customer_id')
     .eq('id', user.id)
     .single()
 
+  let customerId = profile?.stripe_customer_id
+
+  // If no ID exists, create the customer in Stripe now
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email as string,
+      metadata: { supabase_user_id: user.id }
+    })
+    customerId = customer.id
+
+    await supabase
+      .from('profiles')
+      .update({ stripe_customer_id: customerId })
+      .eq('id', user.id)
+  }
+
   const session = await stripe.checkout.sessions.create({
-    customer: profile?.stripe_customer_id ?? undefined,
-    customer_email: !profile?.stripe_customer_id ? user.email : undefined,
+    payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
     mode: 'subscription',
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
-    metadata: { supabase_uid: user.id }
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+    customer: customerId,
+    customer_update: { address: 'auto' },
+    metadata: {
+      supabase_uid: user.id
+    }
   })
 
   if (!session.url) throw new Error('Failed to create session')
@@ -49,7 +68,7 @@ export async function getBillingPortalUrl() {
     .single()
 
   if (!profile?.stripe_customer_id) {
-    throw new Error('No Stripe customer found for this user.')
+    throw new Error('No Stripe customer found. Please subscribe first.')
   }
 
   const session = await stripe.billingPortal.sessions.create({
@@ -57,5 +76,7 @@ export async function getBillingPortalUrl() {
     return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`
   })
 
-  redirect(session.url)
+  if (session.url) {
+    redirect(session.url)
+  }
 }

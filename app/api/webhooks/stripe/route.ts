@@ -11,7 +11,14 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   const body = await req.text()
-  const signature = (await headers()).get('stripe-signature') as string
+  if (!body) {
+    return NextResponse.json({ error: 'No body' }, { status: 400 })
+  }
+
+  const signature = (await headers()).get('stripe-signature')
+  if (!signature) {
+    return NextResponse.json({ error: 'No signature' }, { status: 400 })
+  }
 
   let event: Stripe.Event
 
@@ -50,15 +57,29 @@ export async function POST(req: Request) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
-      if (session.metadata?.supabase_uid) {
-        await supabaseAdmin
-          .from('profiles')
-          .update({
-            stripe_customer_id: session.customer as string,
-            subscription_status: 'active'
-          })
-          .eq('id', session.metadata.supabase_uid)
-      }
+      const customerId = session.customer as string
+      const userId = session.metadata?.supabase_uid
+
+      const sessionFull = await stripe.checkout.sessions.retrieve(session.id, {
+        expand: ['line_items']
+      })
+      const stripePriceId = sessionFull.line_items?.data[0]?.price?.id
+
+      const { data: plan } = await supabaseAdmin
+        .from('plans')
+        .select('id')
+        .eq('stripe_price_id', stripePriceId)
+        .single()
+
+      await supabaseAdmin
+        .from('profiles')
+        .update({
+          subscription_status: 'active',
+          stripe_customer_id: customerId,
+          plan_id: plan?.id
+        })
+        .eq('id', userId)
+
       break
     }
 

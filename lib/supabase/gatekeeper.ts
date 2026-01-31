@@ -11,37 +11,23 @@ export async function requireSubscription() {
 
   if (!user) redirect('/login')
 
-  const { data: profile, error } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
-    .select(
-      `
-      subscription_status,
-      plans (
-        features
-      )
-    `
-    )
+    .select('subscription_status, plan_id')
     .eq('id', user.id)
     .single()
 
-  if (error || !profile) {
+  if (!profile || profile.subscription_status !== 'active') {
     redirect('/pricing')
   }
 
-  const isActive = profile.subscription_status === 'active'
-  const rawPlans = profile.plans as unknown as
-    | { features: PlanFeatures }
-    | { features: PlanFeatures }[]
-    | null
-  const features = Array.isArray(rawPlans)
-    ? rawPlans[0]?.features
-    : rawPlans?.features
+  const { data: plan } = await supabase
+    .from('plans')
+    .select('features')
+    .eq('id', profile.plan_id)
+    .single()
 
-  if (!isActive) {
-    redirect('/pricing')
-  }
-
-  return { user, features }
+  return { user, features: plan?.features }
 }
 
 // Compares current usage against plan limits.
